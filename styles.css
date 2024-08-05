@@ -1,0 +1,58 @@
+body {
+    display: flex;
+    height: 100vh;
+}
+.sidebar {
+    width: 250px;
+    background: #343a40;
+    color: white;
+    flex-shrink: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    overflow-y: auto;
+    z-index: 1000;
+}
+.sidebar a {
+    color: white;
+}
+.sidebar .nav-link.active {
+    background-color: #ffd900;
+    color: black;
+}
+.main-content {
+    margin-left: 250px; /* Same as sidebar width */
+    padding: 20px;
+    overflow-y: auto;
+    height: 100%;
+    box-sizing: border-box;
+}
+.customBrandText{
+    font-size: 10px;
+}
+.sidebar .nav-link:hover {
+    color: #ffd900; /* Change this color to your desired hover color */
+}
+.sidebar .nav-link.active:hover {
+    color: #000000; /* Change this color to your desired hover color */
+}
+
+.custom-card {
+     width: 290px;
+     height: auto; /* Adjust height to auto to fit content */
+     margin-left: 10px;
+}
+.custom-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.customCardDash{
+    font-weight: bolder;
+    font-family: Arial, Helvetica, sans-serif;
+
+}
+
+.customCardDash:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="../Admin/Assets/Images/BOC_Logo_16_16_Pixels.jpg">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../Admin/styles.css">
+</head>
+
+<body>
+    <div class="sidebar d-flex flex-column">
+        <div class="p-3 text-center">
+            <img src="../Admin/Assets/Images/BOC_Logo_WZ_Rounded.png" alt="Sidebar Icon" width="30px" height="30px">
+            <div class="sidebar-brand-text mx-3"><span>BOC Monaragala Area</span></div>
+            <div class="sidebar-brand-text mx-3 customBrandText" id="msg"></div>
+        </div>
+        <hr class="sidebar-divider my-0">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="../Admin/Main_Dashboard.html"><i class="fas fa-tachometer-alt"></i><span
+                        class="ms-2">Dashboard</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="../Admin/byBranch.html"><i class="fas fa-car"></i><span class="ms-2">View by
+                        Branch</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="../Admin/byQues.html"><i class="fas fa-user"></i><span
+                        class="ms-2">View by Question</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="../Admin/suggestionsByBranch.html"><i class="fas fa-map"></i><span
+                        class="ms-2">Suggestions</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="signOutLink"><i class="far fa-user-circle"></i><span class="ms-2">Sign
+                        Out</span></a>
+            </li>
+        </ul>
+    </div>
+    <div class="main-content container">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title ">Summary</h5>
+                <p class="card-text" id="summary"></p>
+                <div id="loading-spinner-summary" class="spinner-border text-primary" role="status" style="display: none;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Total Responses for Each Category Across All Branches</h5>
+                <div id="loading-spinner" class="spinner-border text-primary" role="status" style="display: none;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <canvas id="totalResponsesChart"></canvas>
+                <div class="card mt-3 customCardDash"><p id="percentages" class="mt-3 p-3"></p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign Out Confirmation Modal -->
+    <div class="modal fade" id="signOutModal" tabindex="-1" aria-labelledby="signOutModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="signOutModalLabel">Confirm Sign Out</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to Sign out?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmSignOut">Sign Out</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script type="module">
+
+        const AdminCreds = JSON.parse(sessionStorage.getItem("admin-creds"));
+
+        if (AdminCreds) {
+            msg.innerText = `Admin with email ${AdminCreds.email} Successfully Logged In!`;
+        } else {
+            window.location.href = 'index.html'; // Redirect to login page if no credentials found
+        }
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0JLvxC286PUDwjx2oeEkhOMTr_TsYPRg",
+            authDomain: "evaluationsysboc.firebaseapp.com",
+            projectId: "evaluationsysboc",
+            storageBucket: "evaluationsysboc.appspot.com",
+            messagingSenderId: "581990176597",
+            appId: "1:581990176597:web:2c5dd4ed7df2f3babc01dc",
+            measurementId: "G-MZ4TLL0THZ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showSummary();
+            showTotalResBarChart();
+        });
+
+        // Define colors for specific response types globally
+        const responseColors = {
+            'Excellent': 'rgba(0, 255, 0, 0.2)', // Green
+            'Good': 'rgba(255, 255, 0, 0.2)', // Yellow
+            'Average': 'rgba(255, 165, 0, 0.2)', // Orange
+            'Bad': 'rgba(255, 0, 0, 0.2)', // Red
+            'Poor': 'rgba(211, 211, 211, 0.2)' // Light ash color
+        };
+
+        const borderColors = {
+            'Excellent': 'rgba(0, 255, 0, 1)', // Green
+            'Good': 'rgba(255, 255, 0, 1)', // Yellow
+            'Average': 'rgba(255, 165, 0, 1)', // Orange
+            'Bad': 'rgba(255, 0, 0, 1)', // Red
+            'Poor': 'rgba(211, 211, 211, 1)' // Dark ash color
+        };
+
+        async function showSummary() {
+            const branchCodes = ['082', '700', '416','620']; // List of all branch codes
+            const totalResponses = {
+                'Excellent': 0,
+                'Good': 0,
+                'Average': 0,
+                'Bad': 0,
+                'Poor': 0
+            };
+
+            const loadingSpinnerSummary = document.getElementById('loading-spinner-summary');
+            loadingSpinnerSummary.style.display = 'block';
+
+            try {
+                let totalResponseCount = 0;
+
+                // Iterate over each branch and fetch totalRespCount from respCount collection
+                for (const branchCode of branchCodes) {
+                    const respCountRef = collection(db, `Br_in_Area/${branchCode}/respCount`);
+                    const respCountSnap = await getDocs(respCountRef);
+                    respCountSnap.forEach(docSnap => {
+                        const responseData = docSnap.data();
+                        if (responseData.count) {
+                            totalResponseCount += responseData.count;
+                        }
+                    });
+                }
+
+                // Update summary card
+                const summaryElement = document.getElementById('summary');
+                summaryElement.innerText = `Number of Branches: ${branchCodes.length}\nTotal Responses: ${totalResponseCount}`;
+
+                // Hide the loading spinners
+                loadingSpinnerSummary.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error fetching total responses:', error);
+                alert('Failed to fetch total responses. Please try again later.');
+            }
+        }
+
+        async function showTotalResBarChart() {
+            const branchCodes = ['082', '700', '416','620']; // List of all branch codes
+            const totalResponses = {
+                'Excellent': 0,
+                'Good': 0,
+                'Average': 0,
+                'Bad': 0,
+                'Poor': 0
+            };
+
+            const loadingSpinner = document.getElementById('loading-spinner');
+            loadingSpinner.style.display = 'block';
+
+            try {
+                let totalResponseCount = 0;
+
+                // Iterate over each branch and fetch responses from all question sub-collections
+                for (const branchCode of branchCodes) {
+                    for (let questionNumber = 1; questionNumber <= 10; questionNumber++) {
+                        const questionRef = collection(db, `Br_in_Area/${branchCode}/Q${questionNumber}`);
+                        const questionSnap = await getDocs(questionRef);
+                        questionSnap.forEach(docSnap => {
+                            const responseData = docSnap.data();
+                            for (const [response, count] of Object.entries(responseData)) {
+                                if (totalResponses[response] !== undefined) {
+                                    totalResponses[response] += count;
+                                    totalResponseCount += count;
+                                }
+                            }
+                        });
+                    }
+                }
+
+                // Calculate percentages
+                const percentages = {};
+                for (const [response, count] of Object.entries(totalResponses)) {
+                    percentages[response] = ((count / totalResponseCount) * 100).toFixed(2);
+                }
+
+                // Prepare data for Chart.js
+                const data = {
+                    labels: Object.keys(totalResponses),
+                    datasets: [{
+                        label: 'Total Responses',
+                        data: Object.values(totalResponses),
+                        backgroundColor: Object.keys(totalResponses).map(response => responseColors[response]),
+                        borderColor: Object.keys(totalResponses).map(response => borderColors[response]),
+                        borderWidth: 1
+                    }]
+                };
+
+                // Render the chart
+                const ctx = document.getElementById('totalResponsesChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: false
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Total Responses for Each Category Across All Branches'
+                            }
+                        }
+                    }
+                });
+
+                // Display percentages
+                const percentagesElement = document.getElementById('percentages');
+                percentagesElement.innerHTML = Object.entries(percentages).map(([response, percentage]) => {
+                    return `<span><i class = "fas fa-circle"></i> ${response}: ${percentage}%</span>`;
+                }).join('&nbsp;&nbsp;&nbsp;&nbsp;');
+
+                // Hide the loading spinners
+                loadingSpinner.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error fetching total responses:', error);
+                alert('Failed to fetch total responses. Please try again later.');
+            }
+        }
+
+        const SignOut = () => {
+            sessionStorage.removeItem("admin-creds");
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('signOutLink').addEventListener('click', (event) => {
+            event.preventDefault();
+            const signOutModal = new bootstrap.Modal(document.getElementById('signOutModal'));
+            signOutModal.show();
+        });
+
+        document.getElementById('confirmSignOut').addEventListener('click', () => {
+            SignOut();
+        });
+    </script>
+</body>
+
+</html>
