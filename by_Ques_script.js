@@ -252,7 +252,7 @@ function createOverallFeedbackChart(questionNumber) {
 
 const SignOut = () => {
     sessionStorage.removeItem("admin-creds");
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
 }
 
 document.getElementById('signOutLink').addEventListener('click', (event) => {
