@@ -56,3 +56,29 @@ body {
 .customCardDash:hover {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
+
+.warn-label{
+    color: red;
+}
+
+.custom-card-overall {
+    width: 290px;
+    height: auto; /* Adjust height to auto to fit content */
+    margin-left: 10px;
+    background-color:#fff4b5;
+    color: #000000;
+}
+
+.custom-card-overall:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.custom-card-sugg {
+    width: 1000px;
+    height: auto; /* Adjust height to auto to fit content */
+
+}
+
+.custom-card-sugg:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}

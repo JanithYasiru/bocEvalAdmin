@@ -57,12 +57,15 @@
                     <option value="4">Question 4</option>
                     <option value="5">Question 5</option>
                     <option value="6">Question 6</option>
-                    <option value="7">Question 7</option>
-                    <option value="8">Question 8</option>
-                    <option value="9">Question 9</option>
-                    <option value="10">Question 10</option>
                 </select>
             </div>
+        </div>
+
+        <div class="mb-3">
+            <button id="generate-report-btn" class="btn btn-primary"><i class="fas fa-download"></i> Generate
+                Report</button>
+            <label class="warn-label"> Do not Generate Report Before Selecting a Question! (Empty Report will be
+                Generated)</label>
         </div>
 
         <div id="loading-spinner" class="spinner-border text-primary" role="status" style="display: none;">
@@ -93,184 +96,17 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <script type="module">
+    <script src="by_Ques_script.js" type="module"></script>
 
-        const AdminCreds = JSON.parse(sessionStorage.getItem("admin-creds"));
-
-        if (AdminCreds) {
-            msg.innerText = `Admin with email ${AdminCreds.email} Successfully Logged In!`;
-
-        } else {
-            window.location.href = 'index.html'; // Redirect to login page if no credentials found
-        }
-
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-        import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyC0JLvxC286PUDwjx2oeEkhOMTr_TsYPRg",
-            authDomain: "evaluationsysboc.firebaseapp.com",
-            projectId: "evaluationsysboc",
-            storageBucket: "evaluationsysboc.appspot.com",
-            messagingSenderId: "581990176597",
-            appId: "1:581990176597:web:2c5dd4ed7df2f3babc01dc",
-            measurementId: "G-MZ4TLL0THZ"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        document.getElementById('question-select').addEventListener('change', function () {
-            const questionNumber = this.value;
-            if (questionNumber) {
-                showBranchResponses(questionNumber);
-            }
-        });
-
-        // Define colors for specific response types globally
-        const responseColors = {
-            'Excellent': 'rgba(0, 255, 0, 0.2)', // Green
-            'Good': 'rgba(255, 255, 0, 0.2)', // Yellow
-            'Average': 'rgba(255, 165, 0, 0.2)', // Orange
-            'Bad': 'rgba(255, 0, 0, 0.2)', // Red
-            'Poor': 'rgba(211, 211, 211, 0.2)' // Light ash color
-        };
-
-        const borderColors = {
-            'Excellent': 'rgba(0, 255, 0, 1)', // Green
-            'Good': 'rgba(255, 255, 0, 1)', // Yellow
-            'Average': 'rgba(255, 165, 0, 1)', // Orange
-            'Bad': 'rgba(255, 0, 0, 1)', // Red
-            'Poor': 'rgba(211, 211, 211, 1)' // Dark ash color
-        };
-
-        async function showBranchResponses(questionNumber) {
-            const branchResponsesContainer = document.getElementById('branch-responses-container');
-            const branchCodes = ['082', '700', '416', '620']; // List of all branch codes
-
-            // Clear previous branch responses
-            branchResponsesContainer.innerHTML = '';
-            branchResponsesContainer.style.display = 'none';
-
-            const loadingSpinner = document.getElementById('loading-spinner');
-            loadingSpinner.style.display = 'block';
-
-            try {
-                // Fetch responses for each branch
-                for (const branchCode of branchCodes) {
-                    const branchRef = collection(db, `Br_in_Area/${branchCode}/Q${questionNumber}`);
-                    const branchSnap = await getDocs(branchRef);
-                    const responses = {};
-                    branchSnap.forEach(docSnap => {
-                        const responseData = docSnap.data();
-                        for (const [response, count] of Object.entries(responseData)) {
-                            if (responses[response]) {
-                                responses[response] += count;
-                            } else {
-                                responses[response] = count;
-                            }
-                        }
-                    });
-
-                    // Create a card for each branch
-                    const cardDiv = document.createElement('div');
-                    cardDiv.className = 'card mb-3 custom-card col-md-6'; // Add custom-card class
-                    const cardBody = document.createElement('div');
-                    cardBody.className = 'card-body';
-                    cardDiv.appendChild(cardBody);
-
-                    // Add card title
-                    const cardTitle = document.createElement('h5');
-                    cardTitle.className = 'card-title';
-                    cardTitle.innerText = `Branch ${branchCode} Responses for Question ${questionNumber}:`;
-                    cardBody.appendChild(cardTitle);
-
-                    // Add canvas for the pie chart
-                    const canvas = document.createElement('canvas');
-                    canvas.id = `branchChart${branchCode}-Q${questionNumber}`;
-                    cardBody.appendChild(canvas);
-
-                    // Add list of responses below the pie chart
-                    const responseList = document.createElement('ul');
-                    for (const [response, count] of Object.entries(responses)) {
-                        const listItem = document.createElement('li');
-                        listItem.innerText = `${response}: ${count}`;
-                        responseList.appendChild(listItem);
-                    }
-                    cardBody.appendChild(responseList);
-
-                    branchResponsesContainer.appendChild(cardDiv);
-
-                    // Prepare data for the pie chart
-                    const labels = Object.keys(responses);
-                    const data = Object.values(responses);
-
-                    // Map responses to custom colors
-                    const backgroundColors = labels.map(label => responseColors[label] || 'rgba(200, 200, 200, 0.2)');
-                    const borderColorsList = labels.map(label => borderColors[label] || 'rgba(200, 200, 200, 1)');
-
-                    // Create the pie chart
-                    new Chart(canvas, {
-                        type: 'pie',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                data: data,
-                                backgroundColor: backgroundColors,
-                                borderColor: borderColorsList,
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: {
-                                legend: {
-                                    position: 'top',
-                                },
-                                title: {
-                                    display: true,
-                                    text: `Branch ${branchCode} Responses for Question ${questionNumber}`
-                                }
-                            },
-                            hover: {
-                                mode: null, // Disable hover mode
-                                animationDuration: 0 // Disable hover animation
-                            }
-                        }
-                    });
-                }
-
-                // Hide the loading spinner and show the container
-                loadingSpinner.style.display = 'none';
-                branchResponsesContainer.style.display = 'flex';
-                branchResponsesContainer.style.display = 'wrap';
-
-            } catch (error) {
-                console.error('Error fetching branch responses:', error);
-                alert('Failed to fetch branch responses. Please try again later.');
-            }
-        }
-
-        const SignOut = () => {
-            sessionStorage.removeItem("admin-creds");
-            window.location.href = 'index.html';
-        }
-
-        document.getElementById('signOutLink').addEventListener('click', (event) => {
-            event.preventDefault();
-            const signOutModal = new bootstrap.Modal(document.getElementById('signOutModal'));
-            signOutModal.show();
-        });
-
-        document.getElementById('confirmSignOut').addEventListener('click', () => {
-            SignOut();
-        });
-    </script>
 </body>
 
 </html>
